@@ -12,7 +12,7 @@ MVP module includes:
    - password: `postgres`
 2. Run:
    - `cd backend`
-   - `./gradlew bootRun` (or `gradlew.bat bootRun` on Windows)
+   - `APP_JWT_SECRET=<YOUR_LOCAL_SECRET> ./gradlew bootRun` (or set `APP_JWT_SECRET` in PowerShell/cmd before `gradlew.bat bootRun` on Windows)
 
 ## Run web MVP
 1. `cd web`
@@ -85,6 +85,8 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/festrest_chat
 SPRING_DATASOURCE_USERNAME=festrest_chat
 SPRING_DATASOURCE_PASSWORD=change-me
 APP_JWT_SECRET=change-me-to-a-long-random-secret
+APP_CORS_ALLOWED_ORIGINS=https://chatplan.duckdns.org
+APP_WEBSOCKET_ALLOWED_ORIGINS=https://chatplan.duckdns.org
 APP_AUTH_GOOGLE_CLIENT_ID=585676143428-to455n7ud3kql93t07qtod9gtgs1m2a8.apps.googleusercontent.com
 APP_AUTH_TELEGRAM_BOT_TOKEN=change-me
 APP_STORAGE_ROOT_PATH=/var/lib/chat2/uploads
