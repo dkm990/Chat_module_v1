@@ -15,10 +15,12 @@ import type { InviteViewMode } from "./components/InviteStateView";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useVisualViewportBottomInset } from "./hooks/useVisualViewportBottomInset";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:8092";
+const isLocalBrowser =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const API = (import.meta.env.VITE_API_BASE_URL || (isLocalBrowser ? "http://localhost:8092" : window.location.origin)).replace(/\/+$/, "");
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 const TELEGRAM_BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || "";
-const INVITE_BASE_URL = (import.meta.env.VITE_INVITE_BASE_URL || "https://chatplan.duckdns.org").replace(/\/+$/, "");
+const INVITE_BASE_URL = (import.meta.env.VITE_INVITE_BASE_URL || window.location.origin).replace(/\/+$/, "");
 const DEV_MODE = new URLSearchParams(window.location.search).get("dev") === "1";
 
 declare global {
