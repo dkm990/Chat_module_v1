@@ -1,0 +1,40 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/festrest_chat}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+app:
+  jwt:
+    issuer: ${APP_JWT_ISSUER:festrest-backend}
+    secret: ${APP_JWT_SECRET:local-dev-secret-local-dev-secret-local-dev}
+    ttl-seconds: ${APP_JWT_TTL_SECONDS:86400}
+  auth:
+    google:
+      client-id: ${APP_AUTH_GOOGLE_CLIENT_ID:585676143428-to455n7ud3kql93t07qtod9gtgs1m2a8.apps.googleusercontent.com}
+      jwk-uri: ${APP_AUTH_GOOGLE_JWK_URI:https://www.googleapis.com/oauth2/v3/certs}
+    telegram:
+      bot-token: ${APP_AUTH_TELEGRAM_BOT_TOKEN:}
+      max-auth-age-seconds: ${APP_AUTH_TELEGRAM_MAX_AUTH_AGE_SECONDS:86400}
+  storage:
+    root-path: ${APP_STORAGE_ROOT_PATH:uploads/chat}
+    max-file-size-bytes: ${APP_STORAGE_MAX_FILE_SIZE_BYTES:52428800}
+    allowed-mime-types:
+      - image/jpeg
+      - image/png
+      - image/webp
+      - video/mp4
+      - video/quicktime

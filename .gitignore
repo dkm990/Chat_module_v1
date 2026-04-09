@@ -1,0 +1,39 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Root temp artifacts
+tmp_*
+*.tmp
+*.log
+RAW.py
+Untitled.fig
+Untitled_fig_tmp.zip
+
+# Frontend
+web/node_modules/
+web/dist/
+web/.env.local
+web/.env.development.local
+web/.env.production.local
+web/.env.*.local
+
+# Backend
+backend/.gradle/
+backend/build/
+backend/uploads/
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-prod.yml
+
+# Java / Gradle
+*.class
+
+# Python helper caches
+__pycache__/
+*.pyc
+
+# Misc extracted helper folders
+fig-parse/
+untitled_fig_extracted/
