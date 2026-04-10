@@ -17,6 +17,175 @@ body {
   overflow: hidden;
 }
 
+.chat-sdk-main-container {
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+}
+
+.chat-sdk-main-container .cs-chat-container {
+  background: transparent;
+}
+
+.chat-sdk-message-list {
+  background: transparent;
+}
+
+.chat-sdk-message-list .cs-message-list__scroll-wrapper {
+  padding: 18px 20px 24px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-sdk-message-list .cs-message-list__content {
+  display: grid;
+  gap: 0;
+}
+
+.chat-sdk-message-list .cs-message-separator {
+  margin: 14px 0 12px;
+}
+
+.chat-sdk-message-list .cs-message-separator__content {
+  font-size: 11px;
+  opacity: 0.72;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.chat-sdk-message-list .chat-sdk-unread-separator .cs-message-separator__content {
+  font-weight: 700;
+  color: #ffcad4;
+  border-color: rgba(255, 164, 184, 0.35);
+  background: rgba(255, 130, 160, 0.12);
+  opacity: 1;
+}
+
+.chat-sdk-message-list .cs-message {
+  background: transparent;
+}
+
+.chat-sdk-message-list .cs-message__content-wrapper {
+  background: transparent;
+  box-shadow: none;
+}
+
+.chat-sdk-message-list .cs-message--incoming .cs-message__content-wrapper,
+.chat-sdk-message-list .cs-message--outgoing .cs-message__content-wrapper {
+  background: transparent;
+}
+
+.chat-sdk-message-list .cs-typing-indicator {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.chat-sdk-load-older-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.chat-sdk-load-older-button {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e7e2ff;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.chat-sdk-load-older-button--error {
+  color: #ffd5de;
+  border-color: rgba(255, 164, 184, 0.3);
+  background: rgba(255, 130, 160, 0.12);
+}
+
+.chat-sdk-error-banner {
+  max-width: 520px;
+  margin: 0 auto 12px;
+  font-size: 12px;
+  color: #ffb8c5;
+  border: 1px solid rgba(255, 130, 160, 0.25);
+  background: rgba(255, 130, 160, 0.1);
+  border-radius: 10px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.chat-sdk-empty-state {
+  opacity: 0.72;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.chat-sdk-empty-card {
+  margin-top: 40px;
+  margin-inline: auto;
+  max-width: 440px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  padding: 22px 20px;
+  text-align: center;
+}
+
+.chat-sdk-empty-card__title {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.chat-sdk-empty-card__text {
+  opacity: 0.74;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.chat-sdk-composer .cs-message-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.chat-sdk-composer .cs-message-input__content-editor-wrapper {
+  background: transparent;
+}
+
+.chat-sdk-composer .cs-message-input__content-editor {
+  color: #fff;
+}
+
+.chat-sdk-composer .cs-message-input__content-editor[data-placeholder]:empty::before {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.chat-sdk-composer .cs-button--send,
+.chat-sdk-composer .cs-button--attachment {
+  color: #fff;
+}
+
+.chat-sdk-composer-action {
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chat-sdk-composer-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* Invite landing: centered card, safe areas, avoid iOS horizontal overflow */
 .invite-page-root {
   min-height: 100vh;

@@ -1,4 +1,4 @@
-import type { KeyboardEvent as ReactKeyboardEvent, MutableRefObject, RefObject } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, MutableRefObject, ReactNode, RefObject } from "react";
 import { useLayoutEffect } from "react";
 import type { Message, Room } from "../chatTypes";
 import { ChatHeader } from "./ChatHeader";
@@ -35,6 +35,11 @@ type ChatCanvasProps = {
   onComposerFocusScroll?: () => void;
   /** When false, keyboard inset does not auto-scroll timeline (user scrolled up) */
   stickToBottomRef?: MutableRefObject<boolean>;
+  hasOlderMessages?: boolean;
+  loadingOlder?: boolean;
+  loadOlderError?: string | null;
+  onLoadOlder?: () => void;
+  composer?: ReactNode;
 };
 
 export function ChatCanvas(props: ChatCanvasProps) {
@@ -65,6 +70,11 @@ export function ChatCanvas(props: ChatCanvasProps) {
     keyboardBottomInset = 0,
     onComposerFocusScroll,
     stickToBottomRef,
+    hasOlderMessages,
+    loadingOlder,
+    loadOlderError,
+    onLoadOlder,
+    composer,
   } = props;
   const roomTitle = activeRoom?.displayName || activeRoom?.title || "Conversation";
 
@@ -114,6 +124,47 @@ export function ChatCanvas(props: ChatCanvasProps) {
           padding: isMobileLayout ? "12px 14px 16px" : "18px 20px 24px",
         }}
       >
+        {roomId && (hasOlderMessages || loadingOlder || loadOlderError) ? (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+            {loadOlderError ? (
+              <button
+                type="button"
+                onClick={onLoadOlder}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#ffd5de",
+                  padding: "6px 10px",
+                  borderRadius: 9999,
+                  border: "1px solid rgba(255,164,184,0.3)",
+                  background: "rgba(255,130,160,0.12)",
+                  cursor: "pointer",
+                }}
+              >
+                Retry loading earlier messages
+              </button>
+            ) : loadingOlder ? (
+              <div style={{ fontSize: 12, opacity: 0.72 }}>Loading earlier messages…</div>
+            ) : hasOlderMessages ? (
+              <button
+                type="button"
+                onClick={onLoadOlder}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#e7e2ff",
+                  padding: "6px 10px",
+                  borderRadius: 9999,
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.04)",
+                  cursor: "pointer",
+                }}
+              >
+                Load earlier messages
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         {!roomId ? <div style={{ opacity: 0.72, fontSize: 14, textAlign: "center", marginTop: 20 }}>Select a room to view messages.</div> : null}
         {errorMessage ? (
           <div style={{ maxWidth: 520, margin: "0 auto 12px", fontSize: 12, color: "#ffb8c5", border: "1px solid rgba(255,130,160,0.25)", background: "rgba(255,130,160,0.1)", borderRadius: 10, padding: "8px 10px", textAlign: "center" }}>
@@ -260,7 +311,7 @@ export function ChatCanvas(props: ChatCanvasProps) {
         `}</style>
       </div>
 
-      {roomId ? (
+      {roomId ? (composer ?? (
         <MessageComposer
           text={text}
           onTextChange={onTextChange}
@@ -273,7 +324,7 @@ export function ChatCanvas(props: ChatCanvasProps) {
           isMobileLayout={isMobileLayout}
           onTextAreaFocus={onComposerFocusScroll}
         />
-      ) : null}
+      )) : null}
     </section>
   );
 }
