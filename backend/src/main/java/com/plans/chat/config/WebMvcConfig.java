@@ -21,6 +21,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/chat/**")
+            .addResourceLocations(
+                "file:" + rootPath + "/",
+                "file:" + rootPath + "/chat/"
+            );
         registry.addResourceHandler("/uploads/**")
             .addResourceLocations("file:" + rootPath + "/");
     }
