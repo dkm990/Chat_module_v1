@@ -19,6 +19,7 @@ type ChatLayoutProps = {
   inviteBaseUrl: string;
   initialInviteTargetId?: string;
   onInviteHandled?: () => void;
+  onOpenRelatedEntity?: (payload: { roomId: string; eventId?: string | null; venueId?: string | null }) => void;
 };
 
 export function ChatLayout(props: ChatLayoutProps) {
@@ -31,6 +32,7 @@ export function ChatLayout(props: ChatLayoutProps) {
     inviteBaseUrl,
     initialInviteTargetId,
     onInviteHandled,
+    onOpenRelatedEntity,
   } = props;
   const effectiveUserId = me?.userId || userId;
   const chat = useChatModule({ apiBase, token, userId: effectiveUserId });
@@ -85,6 +87,7 @@ export function ChatLayout(props: ChatLayoutProps) {
       onBackToList={() => {
         void chat.setActiveRoom("");
       }}
+      onOpenRelatedEntity={onOpenRelatedEntity}
     />
   );
 

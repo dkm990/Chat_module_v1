@@ -5,6 +5,8 @@ type ChatHeaderProps = {
   activeRoom?: Room;
   isPeerTyping: boolean;
   presenceText: string;
+  showPresence?: boolean;
+  showActionButtons?: boolean;
   /** When set, mobile chrome: burger if empty, back if set */
   mobileSelectedRoomId?: string | null;
   onMobileOpenSidebar?: () => void;
@@ -15,6 +17,8 @@ export function ChatHeader({
   activeRoom,
   isPeerTyping,
   presenceText,
+  showPresence = true,
+  showActionButtons = true,
   mobileSelectedRoomId,
   onMobileOpenSidebar,
   onMobileBackToList,
@@ -24,7 +28,12 @@ export function ChatHeader({
 
   const title = activeRoom?.displayName || "Conversation";
   const initial = title.slice(0, 1).toUpperCase();
-  const subtitle = activeRoom?.counterpartUserId ? (isPeerTyping ? `${title} is typing...` : presenceText) : "Select a room";
+  const subtitle =
+    showPresence && activeRoom?.counterpartUserId
+      ? isPeerTyping
+        ? `${title} is typing...`
+        : presenceText
+      : "Select a room";
 
   const listTitle = "Messages";
   const listSubtitle = "Your conversations";
@@ -103,7 +112,7 @@ export function ChatHeader({
           </>
         )}
       </div>
-      {!isMobileChrome ? (
+      {!isMobileChrome && showActionButtons ? (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <button type="button" style={actionBtnStyle} aria-label="call">
             ☎
@@ -115,7 +124,7 @@ export function ChatHeader({
             ⋯
           </button>
         </div>
-      ) : hasRoom ? (
+      ) : hasRoom && showActionButtons ? (
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <button type="button" style={mobileActionBtnStyle} aria-label="call">
             ☎

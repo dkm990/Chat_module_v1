@@ -1,0 +1,13 @@
+package com.plans.chat.policy;
+
+public enum CapabilityDenyReason {
+    ROLE_INSUFFICIENT,
+    ROOM_TYPE_RESTRICTED,
+    MEMBERSHIP_INACTIVE,
+    DIRECT_ROOM_LEAVE_FORBIDDEN,
+    TARGET_OWNER_PROTECTED,
+    CAPABILITY_NOT_ALLOWED,
+    ROOM_READ_ONLY,
+    ROOM_ARCHIVED
+}
+

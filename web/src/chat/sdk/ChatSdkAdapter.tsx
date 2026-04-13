@@ -6,9 +6,10 @@ import {
   MessageSeparator,
   TypingIndicator,
 } from "@chatscope/chat-ui-kit-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ChatHeader } from "../../components/ChatHeader";
 import { useChatModule } from "../hooks/useChatModule";
+import type { RoomCapabilities } from "../policy/roomCapabilities";
 import { MessageBodyRenderer } from "../renderers/MessageBodyRenderer";
 import { MessageComposer } from "../ui/MessageComposer";
 import { buildTimelineEntries, formatPresenceText, mapConversationToChatscope } from "./chatscopeMappers";
@@ -21,11 +22,27 @@ type ChatSdkAdapterProps = {
   onBackToList?: () => void;
   localErrorMessage?: string;
   onLocalError?: (message: string) => void;
+  roomCapabilities?: RoomCapabilities;
+  actorRole?: "owner" | "admin" | "member";
+  onOpenRelatedEntity?: (payload: { roomId: string; eventId?: string | null; venueId?: string | null }) => void;
 };
 
 export function ChatSdkAdapter(props: ChatSdkAdapterProps) {
-  const { apiBase, isMobileLayout, keyboardBottomInset = 0, onBackToList, localErrorMessage, onLocalError } = props;
+  const {
+    apiBase,
+    currentUserId,
+    isMobileLayout,
+    keyboardBottomInset = 0,
+    onBackToList,
+    localErrorMessage,
+    onLocalError,
+    roomCapabilities,
+    onOpenRelatedEntity,
+  } = props;
   const chat = useChatModule();
+  const [inviteQuery, setInviteQuery] = useState("");
+  const [inviteResults, setInviteResults] = useState<{ userId: string; displayName: string }[]>([]);
+  const [searchingInvite, setSearchingInvite] = useState(false);
   const roomId = chat.activeRoomId;
   const activeRoom = chat.activeRoom;
   const loading = roomId ? !!chat.loadingMessagesByRoom[roomId] : false;
@@ -36,6 +53,9 @@ export function ChatSdkAdapter(props: ChatSdkAdapterProps) {
   const unreadBoundaryMessageId = chat.unreadBoundaryMessageId;
   const roomTitle = activeRoom?.displayName || activeRoom?.title || "Conversation";
   const conversationModel = activeRoom ? mapConversationToChatscope(activeRoom, { active: true }) : null;
+  const participants = roomId ? chat.participantsByRoom[roomId] || [] : [];
+  const participantError = roomId ? chat.participantErrorByRoom[roomId] || "" : "";
+  const participantLoading = roomId ? !!chat.loadingParticipantsByRoom[roomId] : false;
   const timeline = useMemo(
     () => buildTimelineEntries(chat.messages, unreadBoundaryMessageId),
     [chat.messages, unreadBoundaryMessageId],
@@ -46,9 +66,72 @@ export function ChatSdkAdapter(props: ChatSdkAdapterProps) {
     await chat.loadOlderMessages(roomId, chat.nextCursorByRoom[roomId] || undefined);
   }
 
-  const presenceText = activeRoom
-    ? formatPresenceText(activeRoom.counterpartOnline, activeRoom.counterpartLastSeen)
-    : "";
+  const presenceText =
+    activeRoom && roomCapabilities?.canSeePresence
+      ? formatPresenceText(activeRoom.counterpartOnline, activeRoom.counterpartLastSeen)
+      : "";
+  const showHeaderActions = !!(
+    roomCapabilities?.canSeePresence ||
+    roomCapabilities?.canInviteParticipants ||
+    roomCapabilities?.canEditRoomMeta
+  );
+  const showRoomActions = !!(
+    roomCapabilities?.canLeaveRoom ||
+    roomCapabilities?.canInviteParticipants ||
+    roomCapabilities?.canRemoveParticipants ||
+    roomCapabilities?.canOpenRelatedEntity
+  );
+
+  async function searchInviteCandidates() {
+    const query = inviteQuery.trim();
+    if (!query) {
+      setInviteResults([]);
+      return;
+    }
+    setSearchingInvite(true);
+    try {
+      const items = await chat.searchUsers(query);
+      const present = new Set(participants.map((participant) => participant.userId));
+      setInviteResults(items.filter((item) => !present.has(item.userId)));
+    } finally {
+      setSearchingInvite(false);
+    }
+  }
+
+  async function handleInvite(userId: string) {
+    if (!roomId) return;
+    const ok = await chat.addParticipants(roomId, [userId]);
+    if (!ok) return;
+    setInviteResults((prev) => prev.filter((item) => item.userId !== userId));
+    setInviteQuery("");
+  }
+
+  async function handleLeaveRoom() {
+    if (!roomId) return;
+    const confirmed = window.confirm("Leave this room?");
+    if (!confirmed) return;
+    await chat.leaveRoom(roomId);
+  }
+
+  async function handleRemoveParticipant(userId: string) {
+    if (!roomId) return;
+    const confirmed = window.confirm("Remove this participant from the room?");
+    if (!confirmed) return;
+    await chat.removeParticipant(roomId, userId);
+  }
+
+  function handleOpenRelatedEntity() {
+    if (!roomId || !activeRoom) return;
+    if (onOpenRelatedEntity) {
+      onOpenRelatedEntity({
+        roomId,
+        eventId: activeRoom.eventId || null,
+        venueId: activeRoom.venueId || null,
+      });
+      return;
+    }
+    onLocalError?.("Related entity navigation is not configured in host app yet.");
+  }
 
   return (
     <section
@@ -69,12 +152,103 @@ export function ChatSdkAdapter(props: ChatSdkAdapterProps) {
         activeRoom={activeRoom as any}
         isPeerTyping={isPeerTyping}
         presenceText={presenceText}
+        showPresence={!!roomCapabilities?.canSeePresence}
+        showActionButtons={showHeaderActions}
         mobileSelectedRoomId={isMobileLayout ? roomId : undefined}
         onMobileBackToList={isMobileLayout ? onBackToList : undefined}
       />
 
       <MainContainer className="chat-sdk-main-container">
         <ChatContainer className="chat-sdk-chat-container">
+          {roomId && showRoomActions ? (
+            <div className="chat-sdk-room-actions" style={{ padding: "8px 12px 4px", display: "grid", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {roomCapabilities?.canOpenRelatedEntity ? (
+                  <button type="button" className="chat-sdk-load-older-button" onClick={handleOpenRelatedEntity}>
+                    Open related
+                  </button>
+                ) : null}
+                {roomCapabilities?.canLeaveRoom ? (
+                  <button type="button" className="chat-sdk-load-older-button" onClick={() => void handleLeaveRoom()}>
+                    Leave room
+                  </button>
+                ) : null}
+              </div>
+              {roomCapabilities?.canInviteParticipants ? (
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      value={inviteQuery}
+                      onChange={(event) => setInviteQuery(event.target.value)}
+                      placeholder="Invite by name"
+                      className="chat-sdk-input"
+                      style={{
+                        flex: 1,
+                        minWidth: 160,
+                        borderRadius: 8,
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        background: "rgba(255,255,255,0.04)",
+                        color: "#fff",
+                        padding: "6px 10px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="chat-sdk-load-older-button"
+                      onClick={() => {
+                        void searchInviteCandidates();
+                      }}
+                      disabled={searchingInvite || !inviteQuery.trim()}
+                    >
+                      {searchingInvite ? "Searching..." : "Invite"}
+                    </button>
+                  </div>
+                  {inviteResults.length > 0 ? (
+                    <div style={{ display: "grid", gap: 4 }}>
+                      {inviteResults.slice(0, 5).map((candidate) => (
+                        <button
+                          key={candidate.userId}
+                          type="button"
+                          className="chat-sdk-load-older-button"
+                          onClick={() => {
+                            void handleInvite(candidate.userId);
+                          }}
+                        >
+                          Add {candidate.displayName}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              {roomCapabilities?.canRemoveParticipants ? (
+                <div style={{ display: "grid", gap: 4 }}>
+                  {participantLoading ? (
+                    <div className="chat-sdk-empty-state">Loading participants...</div>
+                  ) : (
+                    participants
+                      .filter(
+                        (participant) =>
+                          participant.role !== "owner" && participant.userId !== currentUserId,
+                      )
+                      .map((participant) => (
+                        <button
+                          key={participant.userId}
+                          type="button"
+                          className="chat-sdk-load-older-button chat-sdk-load-older-button--error"
+                          onClick={() => {
+                            void handleRemoveParticipant(participant.userId);
+                          }}
+                        >
+                          Remove {participant.userId.slice(0, 8)}
+                        </button>
+                      ))
+                  )}
+                </div>
+              ) : null}
+              {participantError ? <div className="chat-sdk-error-banner">{participantError}</div> : null}
+            </div>
+          ) : null}
           <MessageList
             key={roomId || "empty-room"}
             className="chat-sdk-message-list"
@@ -176,7 +350,9 @@ export function ChatSdkAdapter(props: ChatSdkAdapterProps) {
       {roomId ? (
         <MessageComposer
           roomId={roomId}
-          disabled={!roomId}
+          disabled={!roomId || !roomCapabilities?.canSendMessage}
+          canSendAttachments={!!roomCapabilities?.canSendAttachments}
+          canSendLocation={!!roomCapabilities?.canSendLocation}
           uploading={chat.uploading}
           isMobileLayout={isMobileLayout}
           onLocalError={onLocalError}

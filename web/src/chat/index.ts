@@ -1,8 +1,10 @@
 export { createChatApi } from "./api/chatApi";
 export { conversationAdapter } from "./adapters/conversationAdapter";
 export { messageAdapter } from "./adapters/messageAdapter";
+export { participantAdapter } from "./adapters/participantAdapter";
 export { createRealtimeAdapter } from "./adapters/realtimeAdapter";
 export { useChatModule } from "./hooks/useChatModule";
+export { evaluateRoomCapabilities } from "./policy/roomCapabilities";
 export { ChatLayout } from "./ui/ChatLayout";
 export { ConversationList } from "./ui/ConversationList";
 export { ConversationView } from "./ui/ConversationView";
@@ -13,3 +15,4 @@ export { chatStore } from "./store/chatStore";
 export type * from "./types/api";
 export type * from "./types/realtime";
 export type * from "./types/viewModels";
+export type * from "./policy/roomCapabilities";

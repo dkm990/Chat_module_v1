@@ -86,6 +86,22 @@ export function createChatApi(runtime: ChatApiRuntime) {
     getParticipants(roomId: string) {
       return request<ParticipantResponse[]>(`/api/chat/v1/rooms/${roomId}/participants`);
     },
+    addParticipants(roomId: string, userIds: string[]) {
+      return request<ParticipantResponse[]>(`/api/chat/v1/rooms/${roomId}/participants`, {
+        method: "POST",
+        body: JSON.stringify({ userIds }),
+      });
+    },
+    removeParticipant(roomId: string, userId: string) {
+      return request<ParticipantResponse[]>(`/api/chat/v1/rooms/${roomId}/participants/${userId}`, {
+        method: "DELETE",
+      });
+    },
+    leaveRoom(roomId: string) {
+      return request<{ status: string }>(`/api/chat/v1/rooms/${roomId}/leave`, {
+        method: "POST",
+      });
+    },
     searchUsers(query: string, limit = 10) {
       const params = new URLSearchParams({ q: query, limit: String(limit) });
       return request<UserSearchItemResponse[]>(`/api/chat/v1/users/search?${params.toString()}`);

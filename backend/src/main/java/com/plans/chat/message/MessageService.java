@@ -6,6 +6,10 @@ import com.plans.chat.entity.MessageAttachment;
 import com.plans.chat.entity.Message;
 import com.plans.chat.entity.MessageType;
 import com.plans.chat.entity.MessageReadState;
+import com.plans.chat.policy.CapabilityAction;
+import com.plans.chat.policy.CapabilityGuard;
+import com.plans.chat.policy.RoomCapabilities;
+import com.plans.chat.policy.RoomCapabilityEvaluator;
 import com.plans.chat.repo.ChatRoomMemberRepository;
 import com.plans.chat.repo.ChatRoomRepository;
 import com.plans.chat.repo.MessageAttachmentRepository;
@@ -20,8 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class MessageService {
@@ -31,6 +37,8 @@ public class MessageService {
     private final MessageReadStateRepository readStateRepository;
     private final MessageAttachmentRepository attachmentRepository;
     private final ObjectMapper objectMapper;
+    private final RoomCapabilityEvaluator capabilityEvaluator;
+    private final CapabilityGuard capabilityGuard;
 
     public MessageService(
         MessageRepository messageRepository,
@@ -38,7 +46,9 @@ public class MessageService {
         ChatRoomMemberRepository memberRepository,
         MessageReadStateRepository readStateRepository,
         MessageAttachmentRepository attachmentRepository,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        RoomCapabilityEvaluator capabilityEvaluator,
+        CapabilityGuard capabilityGuard
     ) {
         this.messageRepository = messageRepository;
         this.roomRepository = roomRepository;
@@ -46,12 +56,47 @@ public class MessageService {
         this.readStateRepository = readStateRepository;
         this.attachmentRepository = attachmentRepository;
         this.objectMapper = objectMapper;
+        this.capabilityEvaluator = capabilityEvaluator;
+        this.capabilityGuard = capabilityGuard;
     }
 
     @Transactional
     public MessageResponse send(UUID roomId, UUID senderId, SendMessageRequest request) {
-        ensureActiveMember(roomId, senderId);
+        ChatRoom room = roomRepository.findById(roomId).orElseThrow();
+        ChatRoomMember actor = activeMemberOrForbidden(roomId, senderId);
+        RoomCapabilities capabilities = capabilityEvaluator.evaluateCapabilities(room, actor, senderId);
+        capabilityGuard.requireCapability(
+            room,
+            actor,
+            senderId,
+            CapabilityAction.SEND_MESSAGE,
+            "canSendMessage",
+            capabilities.canSendMessage(),
+            capabilityEvaluator.resolveDenyReason(CapabilityAction.SEND_MESSAGE, room, actor)
+        );
         validateRequest(request);
+        if (request.type() == MessageType.IMAGE || request.type() == MessageType.VIDEO) {
+            capabilityGuard.requireCapability(
+                room,
+                actor,
+                senderId,
+                CapabilityAction.SEND_ATTACHMENTS,
+                "canSendAttachments",
+                capabilities.canSendAttachments(),
+                capabilityEvaluator.resolveDenyReason(CapabilityAction.SEND_ATTACHMENTS, room, actor)
+            );
+        }
+        if (request.type() == MessageType.LOCATION) {
+            capabilityGuard.requireCapability(
+                room,
+                actor,
+                senderId,
+                CapabilityAction.SEND_LOCATION,
+                "canSendLocation",
+                capabilities.canSendLocation(),
+                capabilityEvaluator.resolveDenyReason(CapabilityAction.SEND_LOCATION, room, actor)
+            );
+        }
         Message message = new Message();
         message.setId(UUID.randomUUID());
         message.setChatId(roomId);
@@ -64,7 +109,6 @@ public class MessageService {
 
         List<MessageAttachmentResponse> attachmentResponses = saveAttachments(message.getId(), request);
 
-        ChatRoom room = roomRepository.findById(roomId).orElseThrow();
         room.setLastMessageId(message.getId());
         room.setLastMessageAt(message.getCreatedAt());
         room.setUpdatedAt(Instant.now());
@@ -225,4 +269,11 @@ public class MessageService {
             .filter(ChatRoomMember::isActive)
             .orElseThrow(() -> new IllegalStateException("Forbidden"));
     }
+
+    private ChatRoomMember activeMemberOrForbidden(UUID roomId, UUID userId) {
+        return memberRepository.findByChatIdAndUserId(roomId, userId)
+            .filter(ChatRoomMember::isActive)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "CHAT_CAPABILITY_DENIED"));
+    }
+
 }

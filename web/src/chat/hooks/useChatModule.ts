@@ -51,6 +51,10 @@ export function useChatModule(options?: UseChatModuleOptions) {
     handleComposerTextChange: (roomId: string, nextText: string) =>
       chatStore.handleComposerTextChange(roomId, nextText),
     searchUsers: (query: string) => chatStore.searchUsers(query),
+    loadParticipants: (roomId: string) => chatStore.loadParticipants(roomId),
+    addParticipants: (roomId: string, userIds: string[]) => chatStore.addParticipants(roomId, userIds),
+    removeParticipant: (roomId: string, userId: string) => chatStore.removeParticipant(roomId, userId),
+    leaveRoom: (roomId: string) => chatStore.leaveRoom(roomId),
     clearError: () => chatStore.clearError(),
     clearSession: () => chatStore.clearSession(),
   };

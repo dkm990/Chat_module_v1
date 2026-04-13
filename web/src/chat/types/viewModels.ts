@@ -60,6 +60,8 @@ export type ConversationVM = {
   id: string;
   type: ChatRoomType;
   title: string | null;
+  eventId?: string | null;
+  venueId?: string | null;
   displayName: string;
   unreadCount: number;
   lastMessagePreview: string;

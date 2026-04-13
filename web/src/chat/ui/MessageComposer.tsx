@@ -5,6 +5,8 @@ import { useChatModule } from "../hooks/useChatModule";
 type MessageComposerProps = {
   roomId: string;
   disabled: boolean;
+  canSendAttachments?: boolean;
+  canSendLocation?: boolean;
   uploading: boolean;
   isMobileLayout?: boolean;
   onTextAreaFocus?: () => void;
@@ -12,7 +14,16 @@ type MessageComposerProps = {
 };
 
 export function MessageComposer(props: MessageComposerProps) {
-  const { roomId, disabled, uploading, isMobileLayout, onTextAreaFocus, onLocalError } = props;
+  const {
+    roomId,
+    disabled,
+    canSendAttachments = true,
+    canSendLocation = true,
+    uploading,
+    isMobileLayout,
+    onTextAreaFocus,
+    onLocalError,
+  } = props;
   const chat = useChatModule();
   const [text, setText] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -29,14 +40,17 @@ export function MessageComposer(props: MessageComposerProps) {
 
   async function handleSend() {
     if (!roomId || !text.trim()) return;
-    await chat.sendText(roomId, text.trim());
+    const sent = await chat.sendText(roomId, text.trim());
+    if (!sent) return;
     setText("");
+    onLocalError?.("");
     chat.handleComposerTextChange(roomId, "");
   }
 
   async function handleFilePick(file: File) {
     if (!roomId) return;
-    await chat.sendAttachments(roomId, [file]);
+    const sent = await chat.sendAttachments(roomId, [file]);
+    if (sent) onLocalError?.("");
   }
 
   async function handleSendLocation() {
@@ -56,7 +70,8 @@ export function MessageComposer(props: MessageComposerProps) {
       onLocalError?.("Failed to get location.");
       return;
     }
-    await chat.sendLocation(roomId, { lat: coords.lat, lng: coords.lng, label: null });
+    const sent = await chat.sendLocation(roomId, { lat: coords.lat, lng: coords.lng, label: null });
+    if (sent) onLocalError?.("");
   }
 
   return (
@@ -93,7 +108,7 @@ export function MessageComposer(props: MessageComposerProps) {
         disabled={disabled}
         sendButton={true}
         attachButton={true}
-        attachDisabled={disabled || uploading}
+        attachDisabled={disabled || uploading || !canSendAttachments}
         sendDisabled={disabled || uploading || !text.trim()}
         fancyScroll={false}
         onAttachClick={() => fileInputRef.current?.click()}
@@ -105,17 +120,19 @@ export function MessageComposer(props: MessageComposerProps) {
         }}
       />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <button
-          type="button"
-          onClick={() => {
-            void handleSendLocation();
-          }}
-          disabled={disabled || uploading}
-          className="chat-sdk-composer-action"
-          title="Share location"
-        >
-          Location
-        </button>
+        {canSendLocation ? (
+          <button
+            type="button"
+            onClick={() => {
+              void handleSendLocation();
+            }}
+            disabled={disabled || uploading}
+            className="chat-sdk-composer-action"
+            title="Share location"
+          >
+            Location
+          </button>
+        ) : null}
       </div>
     </div>
   );

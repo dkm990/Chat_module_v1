@@ -11,7 +11,7 @@ export function AttachmentMessageRenderer(props: AttachmentMessageRendererProps)
   return (
     <div className="chat-attachment-list">
       {attachments.map((attachment, index) => {
-        const src = resolveAttachmentUrl(apiBase, attachment.publicUrl, attachment.storageKey);
+        const src = resolveAttachmentUrl(apiBase, attachment.publicUrl);
         const isImage = isImageAttachment(attachment);
         const attachmentLabel = attachment.storageKey || "Attachment";
         return (
@@ -45,7 +45,6 @@ export function AttachmentMessageRenderer(props: AttachmentMessageRendererProps)
 function resolveAttachmentUrl(
   apiBase: string,
   publicUrl: string | null | undefined,
-  storageKey: string | null | undefined,
 ) {
   const base = apiBase.replace(/\/+$/, "");
   const normalizedPublicUrl = normalizeAttachmentPath(publicUrl);
@@ -53,12 +52,7 @@ function resolveAttachmentUrl(
     if (/^https?:\/\//i.test(normalizedPublicUrl)) return normalizedPublicUrl;
     return `${base}${normalizedPublicUrl}`;
   }
-
-  const normalizedStorageKey = normalizeAttachmentPath(storageKey);
-  if (!normalizedStorageKey) return null;
-  if (/^https?:\/\//i.test(normalizedStorageKey)) return normalizedStorageKey;
-  if (normalizedStorageKey.startsWith("/uploads/")) return `${base}${normalizedStorageKey}`;
-  return `${base}/uploads/chat/${normalizedStorageKey.replace(/^\/+/, "")}`;
+  return null;
 }
 
 function normalizeAttachmentPath(value: string | null | undefined) {

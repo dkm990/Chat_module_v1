@@ -1,5 +1,6 @@
 import { conversationAdapter } from "../adapters/conversationAdapter";
 import { messageAdapter } from "../adapters/messageAdapter";
+import { participantAdapter } from "../adapters/participantAdapter";
 import { createRealtimeAdapter, type RealtimeAdapterOptions } from "../adapters/realtimeAdapter";
 import { createChatApi, type ChatApi } from "../api/chatApi";
 import { mapMessageDtoToVM } from "../mappers/messageMappers";
@@ -10,7 +11,7 @@ import type {
   ReadRealtimeEvent,
   TypingRealtimeEvent,
 } from "../types/realtime";
-import type { ChatMessageVM, ConversationVM } from "../types/viewModels";
+import type { ChatMessageVM, ConversationVM, ParticipantVM } from "../types/viewModels";
 
 type ChatStoreConfig = {
   apiBase: string;
@@ -27,6 +28,9 @@ export type ChatStoreState = {
   loadingOlderByRoom: Record<string, boolean>;
   paginationErrorByRoom: Record<string, string | null>;
   typingUsersByRoom: Record<string, string[]>;
+  participantsByRoom: Record<string, ParticipantVM[]>;
+  loadingParticipantsByRoom: Record<string, boolean>;
+  participantErrorByRoom: Record<string, string | null>;
   presenceByUser: Record<string, { online: boolean; lastSeen: string | null }>;
   loadingRooms: boolean;
   loadingMessagesByRoom: Record<string, boolean>;
@@ -46,6 +50,9 @@ const initialState = (): ChatStoreState => ({
   loadingOlderByRoom: {},
   paginationErrorByRoom: {},
   typingUsersByRoom: {},
+  participantsByRoom: {},
+  loadingParticipantsByRoom: {},
+  participantErrorByRoom: {},
   presenceByUser: {},
   loadingRooms: false,
   loadingMessagesByRoom: {},
@@ -139,6 +146,9 @@ class ChatStore {
       if (activeRoomId && !this.state.messagesByRoom[activeRoomId]) {
         await this.loadMessages(activeRoomId);
       }
+      if (activeRoomId && !this.state.participantsByRoom[activeRoomId]) {
+        await this.loadParticipants(activeRoomId);
+      }
     } catch (error) {
       this.patch({
         loadingRooms: false,
@@ -210,10 +220,90 @@ class ChatStore {
     });
     this.realtime?.setActiveRoom(roomId);
     this.syncActivePresence();
+    if (!this.state.participantsByRoom[roomId]) {
+      await this.loadParticipants(roomId);
+    }
     if (!this.state.messagesByRoom[roomId]) {
       await this.loadMessages(roomId);
     } else {
       await this.markAsRead(roomId);
+    }
+  }
+
+  async loadParticipants(roomId: string) {
+    if (!this.api || !roomId) return;
+    this.state.loadingParticipantsByRoom[roomId] = true;
+    this.state.participantErrorByRoom[roomId] = null;
+    this.emit();
+    try {
+      const participants = await participantAdapter.loadParticipants(this.api, roomId);
+      this.state.participantsByRoom[roomId] = participants;
+      this.state.loadingParticipantsByRoom[roomId] = false;
+      this.emit();
+    } catch (error) {
+      this.state.loadingParticipantsByRoom[roomId] = false;
+      this.state.participantErrorByRoom[roomId] = toErrorMessage(error, "Failed to load participants.");
+      this.emit();
+    }
+  }
+
+  async addParticipants(roomId: string, userIds: string[]) {
+    if (!this.api || !roomId || userIds.length === 0) return false;
+    try {
+      const participants = await participantAdapter.addParticipants(this.api, roomId, userIds);
+      this.state.participantsByRoom[roomId] = participants;
+      this.state.participantErrorByRoom[roomId] = null;
+      this.emit();
+      await this.loadRooms();
+      return true;
+    } catch (error) {
+      this.state.participantErrorByRoom[roomId] = toErrorMessage(error, "Failed to invite participants.");
+      this.emit();
+      return false;
+    }
+  }
+
+  async removeParticipant(roomId: string, userId: string) {
+    if (!this.api || !roomId || !userId) return false;
+    try {
+      const participants = await participantAdapter.removeParticipant(this.api, roomId, userId);
+      this.state.participantsByRoom[roomId] = participants;
+      this.state.participantErrorByRoom[roomId] = null;
+      this.emit();
+      await this.loadRooms();
+      return true;
+    } catch (error) {
+      this.state.participantErrorByRoom[roomId] = toErrorMessage(error, "Failed to remove participant.");
+      this.emit();
+      return false;
+    }
+  }
+
+  async leaveRoom(roomId: string) {
+    if (!this.api || !roomId) return false;
+    try {
+      await participantAdapter.leaveRoom(this.api, roomId);
+      this.state.rooms = this.state.rooms.filter((room) => room.id !== roomId);
+      delete this.state.messagesByRoom[roomId];
+      delete this.state.nextCursorByRoom[roomId];
+      delete this.state.loadingOlderByRoom[roomId];
+      delete this.state.paginationErrorByRoom[roomId];
+      delete this.state.typingUsersByRoom[roomId];
+      delete this.state.unreadBoundaryByRoom[roomId];
+      delete this.state.participantsByRoom[roomId];
+      delete this.state.loadingParticipantsByRoom[roomId];
+      delete this.state.participantErrorByRoom[roomId];
+      if (this.state.activeRoomId === roomId) {
+        this.state.activeRoomId = this.state.rooms[0]?.id || "";
+      }
+      this.emit();
+      if (this.state.activeRoomId) {
+        await this.loadMessages(this.state.activeRoomId);
+      }
+      return true;
+    } catch (error) {
+      this.patch({ errorMessage: toErrorMessage(error, "Failed to leave room.") });
+      return false;
     }
   }
 
@@ -233,7 +323,7 @@ class ChatStore {
   }
 
   async sendText(roomId: string, text: string) {
-    if (!this.api || !this.config || !roomId || !text.trim()) return;
+    if (!this.api || !this.config || !roomId || !text.trim()) return false;
     const clientGeneratedId = crypto.randomUUID();
     const optimistic = messageAdapter.createOptimisticText({
       roomId,
@@ -250,14 +340,16 @@ class ChatStore {
         clientGeneratedId,
       });
       this.upsertServerMessage(roomId, message);
+      return true;
     } catch (error) {
       this.failOptimisticMessage(roomId, clientGeneratedId);
       this.patch({ errorMessage: toErrorMessage(error, "Failed to send message.") });
+      return false;
     }
   }
 
   async sendAttachments(roomId: string, files: File[]) {
-    if (!this.api || !this.config || !roomId || files.length === 0) return;
+    if (!this.api || !this.config || !roomId || files.length === 0) return false;
     const clientGeneratedId = crypto.randomUUID();
     this.patch({ uploading: true, errorMessage: "" });
     try {
@@ -277,17 +369,19 @@ class ChatStore {
       });
       this.upsertServerMessage(roomId, message);
       this.patch({ uploading: false });
+      return true;
     } catch (error) {
       this.failOptimisticMessage(roomId, clientGeneratedId);
       this.patch({
         uploading: false,
         errorMessage: toErrorMessage(error, "Failed to send media message."),
       });
+      return false;
     }
   }
 
   async sendLocation(roomId: string, input: { lat: number; lng: number; label?: string | null }) {
-    if (!this.api || !this.config || !roomId) return;
+    if (!this.api || !this.config || !roomId) return false;
     const clientGeneratedId = crypto.randomUUID();
     const optimistic = messageAdapter.createOptimisticLocation({
       roomId,
@@ -308,9 +402,11 @@ class ChatStore {
         clientGeneratedId,
       });
       this.upsertServerMessage(roomId, message);
+      return true;
     } catch (error) {
       this.failOptimisticMessage(roomId, clientGeneratedId);
       this.patch({ errorMessage: toErrorMessage(error, "Failed to send location message.") });
+      return false;
     }
   }
 
@@ -462,7 +558,7 @@ class ChatStore {
     const existing = this.state.rooms.find((room) => room.id === roomId);
     const fallback: ConversationVM = existing || {
       id: roomId,
-      type: "DIRECT",
+      type: existing?.type || "GROUP",
       title: null,
       displayName: "Chat",
       unreadCount: 0,
