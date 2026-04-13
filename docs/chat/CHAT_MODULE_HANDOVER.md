@@ -147,3 +147,28 @@ Recommended order:
 2. Enable evaluator hooks to enforce archived/readOnly behavior.
 3. Add persistent audit storage for capability denials/actions.
 4. Extend capability evaluator + frontend policy for future `CALENDAR` room type.
+
+## 11) Module entrypoint and architecture guardrails
+Module entrypoint:
+- Frontend mount point is `ChatLayout` (`web/src/chat/ui/ChatLayout.tsx`) from host `App.tsx`.
+
+Do not change without architecture review:
+- Backend authority model (`403 CHAT_CAPABILITY_DENIED` deny contract and capability checks in service layer).
+- Transport layer (REST + SockJS/STOMP topics and flow ownership).
+- `chatStore` as the single client source of chat state.
+- Policy separation (`evaluateRoomCapabilities` on frontend, `RoomCapabilityEvaluator` on backend).
+- DTO/ViewModel adapter boundary (no DTO parsing directly inside presentation widgets).
+
+First files a new developer should read:
+1. `backend/src/main/java/com/plans/chat/policy/RoomCapabilityEvaluator.java`
+2. `backend/src/main/java/com/plans/chat/member/ParticipantService.java`
+3. `backend/src/main/java/com/plans/chat/message/MessageService.java`
+4. `web/src/chat/store/chatStore.ts`
+5. `web/src/chat/sdk/ChatSdkAdapter.tsx`
+
+## 12) Recommended first tasks for next developer
+1. Add persisted room moderation flags (`archived`, `readOnly`).
+2. Wire evaluator hooks to persisted state and enforce room-state restrictions.
+3. Add backend audit persistence for capability deny/action events.
+4. Define moderation workflows (freeze/archive/unfreeze lifecycle).
+5. Extend capability policy/evaluator for future `CALENDAR` room type.
