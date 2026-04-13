@@ -110,6 +110,26 @@ body {
   z-index: 1;
 }
 
+.chat-attachment-fallback {
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  background: rgba(10, 12, 18, 0.32);
+  padding: 10px 12px;
+}
+
+.chat-attachment-fallback__title {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.chat-attachment-fallback__meta {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.72;
+  word-break: break-all;
+}
+
 .chat-sdk-message-list .cs-typing-indicator {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
