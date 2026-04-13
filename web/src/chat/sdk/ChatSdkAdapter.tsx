@@ -154,7 +154,7 @@ export function ChatSdkAdapter(props: ChatSdkAdapterProps) {
                     }
 
                     return (
-                      <Message key={entry.key} model={entry.model}>
+                      <Message key={entry.key} model={entry.model} className="chat-sdk-message-row">
                         <Message.CustomContent>
                           <MessageBodyRenderer
                             apiBase={apiBase}
