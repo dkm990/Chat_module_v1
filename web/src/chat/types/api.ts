@@ -12,8 +12,6 @@ export type RoomResponse = {
   lastMessageAt: string | null;
   typeVersion: number;
   unreadCount: number;
-  roomId: string;
-  roomType: ChatRoomType;
   displayName: string;
   counterpartUserId: string | null;
   counterpartOnline: boolean;

@@ -193,7 +193,7 @@ public class MessageService {
             entity.setHeight(a.height());
             entity.setDurationSec(a.durationSec());
             attachmentRepository.save(entity);
-            return new MessageAttachmentResponse(
+            return MessageAttachmentResponse.of(
                 entity.getKind(),
                 entity.getStorageKey(),
                 entity.getPublicUrl(),
@@ -212,7 +212,7 @@ public class MessageService {
         Map<UUID, List<MessageAttachmentResponse>> out = new HashMap<>();
         for (MessageAttachment a : attachmentRepository.findByMessageIdIn(ids)) {
             out.computeIfAbsent(a.getMessageId(), k -> new java.util.ArrayList<>())
-                .add(new MessageAttachmentResponse(
+                .add(MessageAttachmentResponse.of(
                     a.getKind(), a.getStorageKey(), a.getPublicUrl(), a.getMimeType(),
                     a.getSizeBytes(), a.getWidth(), a.getHeight(), a.getDurationSec()
                 ));

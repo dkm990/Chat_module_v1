@@ -53,12 +53,22 @@ public class AttachmentController {
         }
         Map<String, Object> response = new HashMap<>();
         response.put("storageKey", stored.storageKey());
-        response.put("publicUrl", stored.publicUrl());
+        response.put("publicUrl", normalizePublicUrl(stored.publicUrl(), stored.storageKey()));
         response.put("mimeType", stored.mimeType());
         response.put("sizeBytes", stored.sizeBytes());
         response.put("width", width);
         response.put("height", height);
         response.put("durationSec", durationSec);
         return response;
+    }
+
+    private static String normalizePublicUrl(String publicUrl, String storageKey) {
+        if (publicUrl != null && !publicUrl.isBlank()) {
+            return publicUrl;
+        }
+        if (storageKey == null || storageKey.isBlank()) {
+            return null;
+        }
+        return "/uploads/chat/" + storageKey;
     }
 }
